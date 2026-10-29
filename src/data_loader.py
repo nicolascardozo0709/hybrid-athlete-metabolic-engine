@@ -2,8 +2,8 @@
 Data Ingestion, Physiological Calibration & Biomechanical Feature Engineering Module
 for the Hybrid Athlete & Metabolic Optimization Engine.
 
-Applies ACSM-grounded physiological recalibration to correct uniform synthetic
-artifacts in raw gym telemetry, modeling realistic cardiovascular adaptations.
+Applies ACSM- and ISSN-grounded physiological recalibration to correct uniform synthetic
+artifacts in raw gym telemetry, modeling realistic cardiovascular and nutritional adaptations.
 
 Author: Nicolas Cardozo
 Pontificia Universidad Javeriana
@@ -22,34 +22,34 @@ def calibrate_synthetic_distributions(df: pd.DataFrame) -> pd.DataFrame:
     Real-world adaptations modeled:
     - Cardio: Athletic bradycardia (lower resting HR 50-58 BPM), sustained aerobic strain (145-155 BPM).
     - HIIT: Peak cardiovascular strain (155-175 BPM), high acute caloric density.
-    - Strength: Intermittent rest sets (avg HR 115-130 BPM), higher lean muscle mass.
-    - Yoga: Restorative autonomic tone (resting HR 58-65 BPM, session HR 90-105 BPM).
+    - Strength: Intermittent rest sets (avg HR 120-135 BPM), higher lean muscle mass.
+    - Yoga: Restorative autonomic tone (resting HR 58-65 BPM, session HR 95-110 BPM).
     """
     df_cal = df.copy()
     rng = np.random.RandomState(42)
 
     # 1. Target Resting Heart Rate (mean, std) by modality
     r_bpm_params = {
-        'Cardio': (53.0, 3.2),
-        'HIIT': (57.5, 3.5),
+        'Cardio': (53.0, 3.5),
+        'HIIT': (57.5, 3.8),
         'Strength': (66.0, 4.0),
-        'Yoga': (61.5, 3.2)
+        'Yoga': (61.5, 3.5)
     }
 
-    # 2. Target Average Session BPM (mean, std)
+    # 2. Target Average Session BPM (mean, std) - realistic physiological continuity
     avg_bpm_params = {
-        'HIIT': (164.0, 6.0),
-        'Cardio': (149.0, 5.5),
-        'Strength': (122.5, 5.0),
-        'Yoga': (98.0, 4.8)
+        'HIIT': (161.0, 8.0),
+        'Cardio': (148.0, 7.5),
+        'Strength': (128.0, 8.0),
+        'Yoga': (104.0, 7.0)
     }
 
-    # 3. Base Caloric Expenditure for 1.25 hr session (mean, std)
+    # 3. Base Caloric Expenditure for 1.25 hr session (mean, std) - continuous spectrum
     cal_params = {
-        'Cardio': (880.0, 90.0),
-        'HIIT': (830.0, 85.0),
-        'Strength': (540.0, 60.0),
-        'Yoga': (275.0, 35.0)
+        'HIIT': (850.0, 105.0),
+        'Cardio': (820.0, 100.0),
+        'Strength': (590.0, 85.0),
+        'Yoga': (340.0, 50.0)
     }
 
     # 4. Target Body Fat % (mean, std)
@@ -71,13 +71,13 @@ def calibrate_synthetic_distributions(df: pd.DataFrame) -> pd.DataFrame:
         df_cal.loc[mask, 'Resting_BPM'] = np.clip(rng.normal(mean_r, std_r, n).round(), 45, 85).astype(int)
 
         # Avg BPM during strain
-        mean_a, std_a = avg_bpm_params.get(w_type, (140.0, 6.0))
+        mean_a, std_a = avg_bpm_params.get(w_type, (140.0, 7.0))
         df_cal.loc[mask, 'Avg_BPM'] = np.clip(rng.normal(mean_a, std_a, n).round(), 80, 190).astype(int)
 
-        # Max BPM
+        # Max BPM (physiologically bounded above session avg)
         df_cal.loc[mask, 'Max_BPM'] = np.clip(df_cal.loc[mask, 'Avg_BPM'] + rng.randint(18, 32, n), 125, 215).astype(int)
 
-        # Calories Burned (proportional to duration)
+        # Calories Burned (proportional to duration + natural metabolic variability)
         mean_c, std_c = cal_params.get(w_type, (700.0, 80.0))
         dur_factor = df_cal.loc[mask, 'Session_Duration (hours)'] / 1.25
         cals = rng.normal(mean_c, std_c, n) * dur_factor
@@ -145,13 +145,27 @@ def load_and_preprocess_fitness_data(
     # 7. Hydration Delivery Index (Liters consumed per hour of active strain)
     df['Hydration_Rate_L_per_hr'] = (df['Water_Intake (liters)'] / duration_hours).round(2)
 
-    # 8. Hybrid Sports Nutrition Recommended Macronutrients
-    # Protein recommendation for concurrent/hybrid training: 2.0g per kg of LBM
-    df['Target_Protein_g'] = (df['Lean_Body_Mass_kg'] * 2.0).round(1)
-    # Carbohydrate target based on intensity (g/kg):
-    # Cardio/HIIT -> 5.5 g/kg, Strength/Yoga -> 4.0 g/kg
-    carb_multiplier = np.where(df['Workout_Type'].isin(['Cardio', 'HIIT']), 5.5, 4.0)
-    df['Target_Carbs_g'] = (df['Weight (kg)'] * carb_multiplier).round(1)
+    # 8. Hybrid Sports Nutrition Periodization (ISSN / ACSM Guidelines)
+    # Deterministic seed for reproducible clinical periodization variance
+    nutr_rng = np.random.RandomState(42)
+
+    # Protein recommendation (g/day): ISSN guidelines (1.6 - 2.4 g/kg LBM)
+    # Influenced by training frequency and resistance training stimulus
+    freq = df['Workout_Frequency (days/week)'].fillna(4.0)
+    str_bonus = np.where(df['Workout_Type'] == 'Strength', 0.22, (np.where(df['Workout_Type'] == 'HIIT', 0.10, 0.0)))
+    protein_mult = 1.85 + (0.05 * (freq - 3)) + str_bonus + nutr_rng.normal(0.0, 0.05, len(df))
+    df['Target_Protein_g'] = (df['Lean_Body_Mass_kg'] * protein_mult).clip(lower=60.0).round(1)
+
+    # Carbohydrate target (g/day): ISSN periodized guidelines (3.2 - 7.5 g/kg total weight)
+    # Dynamically scaled by session duration and glycogen repletion demands
+    base_carb = np.where(
+        df['Workout_Type'] == 'HIIT', 5.7,
+        np.where(df['Workout_Type'] == 'Cardio', 5.4,
+        np.where(df['Workout_Type'] == 'Strength', 4.3, 3.4))
+    )
+    duration_factor = (df['Session_Duration (hours)'] - 1.25) * 0.65
+    carb_mult = base_carb + duration_factor + nutr_rng.normal(0.0, 0.22, len(df))
+    df['Target_Carbs_g'] = (df['Weight (kg)'] * carb_mult).clip(lower=120.0).round(1)
 
     return df
 
@@ -159,4 +173,4 @@ def load_and_preprocess_fitness_data(
 if __name__ == "__main__":
     data = load_and_preprocess_fitness_data()
     print(f"Loaded and calibrated {len(data)} athlete profiles successfully.")
-    print("Modality means after ACSM calibration:\n", data.groupby('Workout_Type')[['Resting_BPM', 'Avg_BPM', 'Calories_Burned', 'Lean_Body_Mass_kg']].mean())
+    print("Modality means after ACSM calibration:\n", data.groupby('Workout_Type')[['Resting_BPM', 'Avg_BPM', 'Calories_Burned', 'Lean_Body_Mass_kg', 'Target_Protein_g', 'Target_Carbs_g']].mean().round(1))

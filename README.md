@@ -17,8 +17,8 @@ This project investigates the metabolic demands of hybrid training, cardiac adap
 | Metric / Dimension | Value | Physiological Significance |
 | :--- | :--- | :--- |
 | **Cohort Sample Size** | **973 Athletes** | Multi-discipline tracking (Strength: 258, Cardio: 255, Yoga: 239, HIIT: 221) |
-| **Model Predictive Fit** | **$R^2 = 0.852$** | High variance explained via first-principles multivariate physiological modeling |
-| **Caloric Error Margin** | **MAE = 94.0 kcal** | Precision forecasting for energy balance & intra-workout nutritional planning |
+| **Model Predictive Fit** | **$R^2 = 0.820$** | High variance explained via first-principles multivariate physiological modeling |
+| **Caloric Error Margin** | **MAE = 97.0 kcal** | Precision forecasting for energy balance & intra-workout nutritional planning |
 | **Mean Lean Body Mass** | **61.3 kg** | Segmented by bioelectrical / DEXA-equivalent body fat percentages |
 | **Mean Basal Metabolic Rate** | **1,565 kcal/day** | Calculated via clinical Mifflin-St Jeor formulation |
 | **Concurrent Interference Insight** | **Cardio vs Strength** | Cardio develops athletic bradycardia (53.1 BPM) while Strength maximizes functional muscle mass |
@@ -80,7 +80,7 @@ Visualizing caloric burn as a function of duration, heart rate intensity, and le
 
 ![Metabolic Rate vs Workload](outputs/metabolic_rate_vs_workload.png)
 
-> **Finding:** Caloric burn scales primarily with session duration ($\beta = +484.8\text{ kcal/hr}$) and cardiovascular strain ($\beta = +5.70\text{ kcal/bpm}$), with high-intensity endurance disciplines exhibiting an acute metabolic premium ($+165.9\text{ kcal}$).
+> **Finding:** Caloric burn scales primarily with session duration (**+508.4 kcal/hr**) and cardiovascular strain (**+5.29 kcal/BPM**), with high-intensity endurance disciplines exhibiting an acute metabolic premium (**+151.2 kcal**).
 
 ---
 
@@ -98,16 +98,16 @@ Implemented analytically in pure NumPy without third-party black-box wrappers:
 $$\mathbf{\hat{\beta}} = \left(\mathbf{X}^T \mathbf{X}\right)^{-1} \mathbf{X}^T \mathbf{y}$$
 
 ### Regression Weights:
-* **Intercept ($\beta_0$):** `-717.29`
-* **Session Duration ($\beta_1$):** `+484.83 kcal/hr`
-* **Heart Rate Intensity ($\beta_2$):** `+5.70 kcal/bpm`
-* **Lean Body Mass ($\beta_3$):** `-0.21 kcal/kg`
-* **Fat Percentage ($\beta_4$):** `-4.50 kcal/%`
-* **Endurance/HIIT Indicator ($\beta_5$):** `+165.92 kcal`
+* **Intercept ($\beta_0$):** `-717.77`
+* **Session Duration ($\beta_1$):** `+508.36 kcal/hr`
+* **Heart Rate Intensity ($\beta_2$):** `+5.28 kcal/bpm`
+* **Lean Body Mass ($\beta_3$):** `+0.004 kcal/kg`
+* **Fat Percentage ($\beta_4$):** `-3.07 kcal/%`
+* **Endurance/HIIT Indicator ($\beta_5$):** `+151.15 kcal`
 
 ### Real-World Simulated Prescription:
 For a hybrid athlete weighing **72 kg** with **14% body fat** performing a **1.25 hr** cardio/hybrid session at **152 BPM**:
-* **Predicted Caloric Expenditure:** `844.8 kcal`
+* **Predicted Caloric Expenditure:** `829.4 kcal`
 * **Daily Protein Target (2.0 g/kg LBM):** `123.8 g`
 * **Post-Workout Protein Pulse:** `25.0 g`
 * **Daily Carbohydrate Target (5.5 g/kg):** `396.0 g`
