@@ -8,7 +8,7 @@
 
 An end-to-end data science and exercise physiology system analyzing **concurrent hybrid athletic training** (Strength, Endurance Cardio, HIIT, and Yoga) across a cohort of **973 active athletes**.
 
-This project investigates the metabolic demands of hybrid training, cardiac adaptations (Resting BPM and heart rate reserve), body composition dynamics (Lean Body Mass vs Fat %), and implements a **multivariate Ordinary Least Squares (OLS) regression engine** from first principles in NumPy to forecast active caloric expenditure ($R^2 = 0.852$). It integrates clinical sports nutrition algorithms (Mifflin-St Jeor BMR, macronutrient periodization, and hydration replacement).
+This project investigates the metabolic demands of hybrid training, cardiac adaptations (Resting BPM and heart rate reserve), body composition dynamics (Lean Body Mass vs Fat %), and implements a **multivariate Ordinary Least Squares (OLS) regression engine** from first principles in NumPy to forecast active caloric expenditure ($R^2 = 0.820$). It integrates clinical sports nutrition algorithms (Mifflin-St Jeor BMR, macronutrient periodization, and hydration replacement).
 
 ---
 
@@ -48,7 +48,7 @@ This project investigates the metabolic demands of hybrid training, cardiac adap
                           ▼
     [3] First-Principles NumPy OLS Regression Engine
         ├── Features: Duration (hrs), Avg BPM, Lean Mass, Fat %, Modality
-        └── Solution: β̂ = (XᵀX)⁻¹ Xᵀy  --> R² = 0.852, MAE = 94.0 kcal
+        └── Solution: β̂ = (XᵀX)⁻¹ Xᵀy  --> R² = 0.820, MAE = 97.0 kcal
                           │
                           ▼
     [4] High-Resolution Publication Dashboards (src/visualizer.py)
